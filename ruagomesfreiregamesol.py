@@ -84,22 +84,19 @@ class SearchProblem:
         def DLS(depth, node):
             if depth == 0:
                 if node == self.current_goal:
-                    return [node], True
+                    return [], True
                 else:
-                    return [None], True 
+                    return None, True 
             elif depth > 0:
                 any_remaining = False
                 for child in self.model[node]:
                     found, remaining = DLS(depth - 1, child[1])
-                    if found[0] != None:
-                        return [node] + found, True
+                    if found != None:
+                        proper_succ = [[child[0]], [child[1]]]
+                        return [proper_succ] + found, True
                     if remaining:
                         any_remaining = True
-                return [None], any_remaining
+                return None, any_remaining
     
-        return DLS(len(longest_path) - 1, start_node)[0]
-        
-
-    
-
+        return [[[], [start_node]]] + DLS(len(longest_path) - 1, start_node)[0]
 
