@@ -26,7 +26,17 @@ class SearchProblem:
             self.current_goal = self.goal[i]
             print(self.current_goal)
             shortest_paths[i] = self.IDA([init[i]], limitexp, limitdepth, tickets)
-        p(shortest_paths)
+        
+        #find the limiting path, the one that is the longest between the shortest paths
+        longest_index = 0
+        for i, path in enumerate(shortest_paths[1:]):
+            if len(path) > len(shortest_paths[longest_index]):
+                longest_index = i
+
+        #longest_index holds the index of the agent with the longest path
+
+        #TO-DO: Find paths for the other agents
+        
 
     def IDA(self, init, limitexp, limitdepth, tickets):
         bound = self.h(init[0]) #initial limit
