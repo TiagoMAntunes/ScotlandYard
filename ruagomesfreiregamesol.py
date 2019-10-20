@@ -50,9 +50,6 @@ class SearchProblem:
             shortest_paths[i] = self.IDFS(shortest_paths[longest_index], init[i], limitexp, limitdepth, tickets)
             add_positions(shortest_paths[i])
 
-        print('Found paths:')
-        p(shortest_paths)
-
         res = []
 
         for i in range(len(shortest_paths[0])):
@@ -61,8 +58,6 @@ class SearchProblem:
                 l[0] += shortest_paths[j][i][0]
                 l[1] += shortest_paths[j][i][1]
             res.append(l)
-        print('Finished parsing:')
-        p(res)
         return res
 
         
@@ -104,7 +99,7 @@ class SearchProblem:
         return min
 
     def IDFS(self, longest_path, start_node, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        def DLS(depth, node):
+        def DLS(depth, node, time):
             if depth == 0:
                 if node == self.current_goal:
                     return [], True
@@ -113,13 +108,15 @@ class SearchProblem:
             elif depth > 0:
                 any_remaining = False
                 for child in self.model[node]:
-                    found, remaining = DLS(depth - 1, child[1])
+                    if child[1] in self.busy_times[time+1]: #busy position at the time
+                        continue
+                    found, remaining = DLS(depth - 1, child[1], time + 1)
                     if found != None:
                         proper_succ = [[child[0]], [child[1]]]
                         return [proper_succ] + found, True
                     if remaining:
                         any_remaining = True
                 return None, any_remaining
-    
-        return [[[], [start_node]]] + DLS(len(longest_path) - 1, start_node)[0]
+
+        return [[[], [start_node]]] + DLS(len(longest_path) - 1, start_node, 0)[0]
 
