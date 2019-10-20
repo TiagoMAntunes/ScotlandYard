@@ -13,7 +13,7 @@ class SearchProblem:
         self.busy_times = {}
 
     def cost(self, node, succ):
-        dist = math.sqrt((self.coords[node][0] - self.coords[succ][0])**2 + (self.coords[node][1] - self.coords[succ][1])**2)
+        dist = math.sqrt((self.coords[node-1][0] - self.coords[succ-1][0])**2 + (self.coords[node-1][1] - self.coords[succ-1][1])**2)
         return dist / self.max_dist
 
     def h(self, start_node, goal_index=0):
@@ -33,6 +33,7 @@ class SearchProblem:
         for i in n_detectives:
             self.current_goal = self.goal[i]
             shortest_paths[i] = self.IDA([init[i]], limitexp, limitdepth, tickets)
+            print("shortest", i, " ", shortest_paths[i])
         
         #find the limiting path, the one that is the longest between the shortest paths
         longest_index = 0
@@ -42,10 +43,12 @@ class SearchProblem:
 
         #longest_index holds the index of the agent with the longest path
         add_positions(shortest_paths[longest_index])
+        print("longest index = ", longest_index)
         for i in range(len(shortest_paths)):
             if (i == longest_index):
                 continue
             self.current_goal = self.goal[i]
+            print("current goal = ", self.current_goal)
             print('Current busy positions: ' + str(self.busy_times))
             shortest_paths[i] = self.IDFS(shortest_paths[longest_index], init[i], limitexp, limitdepth, tickets)
             add_positions(shortest_paths[i])
@@ -63,7 +66,7 @@ class SearchProblem:
         
 
     def IDA(self, init, limitexp, limitdepth, tickets):
-        bound = self.h(init[0]) #initial limit
+        bound = self.h(init[0]) 	#initial limit
         path = [[[], init]]         # path = [[[transport], [node]], [...]]
         while True:
             t = self.find(path, 1, bound, tickets)
@@ -83,6 +86,7 @@ class SearchProblem:
             return 'FOUND'
             
         min = math.inf
+
         for succ in self.model[node]:
             if succ not in path and tickets[succ[0]] > 0:
                 proper_succ = [[succ[0]], [succ[1]]]
@@ -108,9 +112,11 @@ class SearchProblem:
             elif depth > 0:
                 any_remaining = False
                 for child in self.model[node]:
+                    print("child of ", node, "is ", child)
                     if child[1] in self.busy_times[time+1]: #busy position at the time
                         continue
                     found, remaining = DLS(depth - 1, child[1], time + 1)
+                    print("found = ", found)
                     if found != None:
                         proper_succ = [[child[0]], [child[1]]]
                         return [proper_succ] + found, True
