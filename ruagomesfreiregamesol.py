@@ -42,6 +42,19 @@ class SearchProblem:
 
         print('Found paths:')
         p(shortest_paths)
+
+        res = []
+
+        for i in range(len(shortest_paths[0])):
+            l = [[],[]]
+            for j in range(len(shortest_paths)):
+                l[0] += shortest_paths[j][i][0]
+                l[1] += shortest_paths[j][i][1]
+            res.append(l)
+        print('Finished parsing:')
+        p(res)
+        return res
+
         
 
     def IDA(self, init, limitexp, limitdepth, tickets):
