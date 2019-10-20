@@ -10,6 +10,7 @@ class SearchProblem:
         self.model = model
         self.coords = auxheur
         self.max_dist = math.sqrt((self.coords[31][0] - self.coords[112][0])**2 + (self.coords[31][1] - self.coords[112][1])**2)
+        self.busy_times = {}
 
     def cost(self, node, succ):
         dist = math.sqrt((self.coords[node][0] - self.coords[succ][0])**2 + (self.coords[node][1] - self.coords[succ][1])**2)
@@ -20,6 +21,13 @@ class SearchProblem:
         return self.cost(start_node, self.goal[goal_index])      
 
     def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
+        def add_positions(list):
+            for i in range(len(list)):
+                if i not in self.busy_times:
+                    self.busy_times[i] = [list[i][1][0]]
+                else:
+                    self.busy_times[i].append(list[i][1][0])
+
         n_detectives = range(len(self.goal))
         shortest_paths = [0] * len(n_detectives)
         for i in n_detectives:
@@ -33,12 +41,14 @@ class SearchProblem:
                 longest_index = i
 
         #longest_index holds the index of the agent with the longest path
-
+        add_positions(shortest_paths[longest_index])
         for i in range(len(shortest_paths)):
             if (i == longest_index):
                 continue
             self.current_goal = self.goal[i]
+            print('Current busy positions: ' + str(self.busy_times))
             shortest_paths[i] = self.IDFS(shortest_paths[longest_index], init[i], limitexp, limitdepth, tickets)
+            add_positions(shortest_paths[i])
 
         print('Found paths:')
         p(shortest_paths)
