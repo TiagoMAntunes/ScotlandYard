@@ -24,7 +24,6 @@ class SearchProblem:
         shortest_paths = [0] * len(n_detectives)
         for i in n_detectives:
             self.current_goal = self.goal[i]
-            print(self.current_goal)
             shortest_paths[i] = self.IDA([init[i]], limitexp, limitdepth, tickets)
         
         #find the limiting path, the one that is the longest between the shortest paths
@@ -35,7 +34,14 @@ class SearchProblem:
 
         #longest_index holds the index of the agent with the longest path
 
-        #TO-DO: Find paths for the other agents
+        for i in range(len(shortest_paths)):
+            if (i == longest_index):
+                continue
+            self.current_goal = self.goal[i]
+            shortest_paths[i] = self.IDFS(shortest_paths[longest_index], init[i], limitexp, limitdepth, tickets)
+
+        print('Found paths:')
+        p(shortest_paths)
         
 
     def IDA(self, init, limitexp, limitdepth, tickets):
@@ -73,4 +79,27 @@ class SearchProblem:
                 tickets[succ[0]] += 1
 
         return min
+
+    def IDFS(self, longest_path, start_node, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
+        def DLS(depth, node):
+            if depth == 0:
+                if node == self.current_goal:
+                    return [node], True
+                else:
+                    return [None], True 
+            elif depth > 0:
+                any_remaining = False
+                for child in self.model[node]:
+                    found, remaining = DLS(depth - 1, child[1])
+                    if found[0] != None:
+                        return [node] + found, True
+                    if remaining:
+                        any_remaining = True
+                return [None], any_remaining
+    
+        return DLS(len(longest_path) - 1, start_node)[0]
+        
+
+    
+
 
