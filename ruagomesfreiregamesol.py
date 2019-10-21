@@ -29,15 +29,25 @@ class SearchProblem:
             self.tickets = tickets
             self.BFS(init[i], self.goal[i])
             paths.append(backtrack(self.goal[i]))
-            print(self.parents)
             
         #Validate longest path
         longest = 0
-        for i, path in enumerate(paths[1:]):
-            if len(paths[longest]) < len(path):
-                longest = i
+        for path in paths:
+            if longest < len(path):
+                longest = len(path)
         
         #SDFS for all paths with specific size adapting to longer sizes
+        valid_paths = []
+        for i in range(len(paths)):
+            self.current_goal = self.goal[i]
+            valid_paths.append(self.SDFS(longest, init[i], limitexp, limitdepth, tickets))
+
+
+        print("----------------------")
+        p(valid_paths)
+        print("----------------------")
+
+        return paths
 
 
     def BFS(self, node, goal):
@@ -53,7 +63,6 @@ class SearchProblem:
         while not Q.empty():
             u = Q.get()
             i = 0
-            print('Node: ' + str(u))
             for transition in self.model[u]: #check possible paths
                 #Validate child
                 child = transition[1]
@@ -76,3 +85,35 @@ class SearchProblem:
                 i += 1
 
 
+
+    def SDFS(self, longest_path, start_node, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
+        def DLS(depth, node, time):
+            if depth == 0:
+                if node == self.current_goal:
+                    print('Goal found! ' + str(node))
+                    return []
+                else:
+                    return None
+            elif depth > 0:
+                new_node = RecursiveNode(node)
+                for child in self.model[node]:
+                    found = DLS(depth - 1, child[1], time + 1)
+                    if found != None:
+                        new_node.add(found)
+                return new_node
+
+        #return [[[], [start_node]]] + DLS(longest_path, start_node, 0)[0]
+        return DLS(longest_path, start_node, 0)
+
+
+
+class RecursiveNode:
+    def __init__(self, value):
+        self.children = []
+        self.value = value
+
+    def add(self, child):
+        self.children.append(child)
+
+    def __repr__(self):
+        return str(self.value) + ' [ ' + str(self.children) + ' ]'
