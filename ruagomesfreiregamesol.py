@@ -24,33 +24,44 @@ class SearchProblem:
             path = [[[], [node]]] + path
             return path
 
-        def clean_paths(dirty_paths, depth_limit, init):
-            paths = []
-            
+        # TODO change this to return all possible paths
+        def clean_paths(paths, dirty_paths, depth_limit, init):    
+            print("=========")
+            for i in range(25):
+                print(i, " - ", dirty_paths[i])
+            print("=========")
+
             final = [[[], [self.current_goal]]]
             node = self.current_goal
             i = depth_limit
             while True:
                 # one path found, prepare to look for more
                 print("node: ", node)
+                print("depth = ", i)
                 print("dirty_node: ", dirty_paths[node])
-                if i == 0:
+                if i == 1:
+                    # got one path
                     if node == init:
-                        final = [[[], [node]]] + final
-                        paths.append(final)
+                        paths += [final]
+                        print("\npaths: ", paths)
  
-                    else:
-                        node = self.current_goal
-                        i = depth_limit
-                        final = [[0, [self.current_goal]]]
-
-                # no more paths terminating in goal
-                if dirty_paths[self.current_goal][depth_limit] == []:
-                    break;
+                    node = self.current_goal
+                    i = depth_limit
+                    final = [[[], [self.current_goal]]]
 
                 else:
+                    # no more paths terminating in goal
+                    if dirty_paths[node][i] == []:
+                        node = self.current_goal
+                        i = depth_limit
+                        final = [[[], [self.current_goal]]]
+
+                    # no more paths terminating in goal
+                    if dirty_paths[self.current_goal][depth_limit] == []:
+                        break;
+                        
                     connection = dirty_paths[node][i].pop()
-                    print("depth = ", i, "connection: ", connection)
+                    print("connection: ", connection)
                     print("from ", node, " to ", connection[0])
                     node = connection[0]
                     transport = self.model[node][connection[1]][0]
@@ -82,28 +93,34 @@ class SearchProblem:
 
         print("len of longest: ", longest)
 
+        print("filhos 6: ", self.model[6])
+
+
         #SBFS for all paths with specific size adapting to longer sizes
-        valid_paths = []
         n = len(self.goal)
+        valid_paths = []
         if n > 1:
             aux_depth = longest
-            while True:
+            not_done = True
+            while not_done:
                 print("aux_depth = ", aux_depth)
                 for i in range(n):
                     self.current_goal = self.goal[i]
                     all_possible = self.LBFS(aux_depth, [[],init[i]], limitexp, limitdepth, tickets)
                     
                     # if path with len n not found, search for paths with len n+1
+                    not_done = False
                     if all_possible == None:
+                        not_done = True
                         aux_depth += 1
                         break
 
-                    clean_paths(all_possible, aux_depth, init[i])
-
-                    break
+                    clean_paths(valid_paths, all_possible, aux_depth, init[i])
+                    
                 print("----------------------")
                 print(valid_paths)
                 print("----------------------")
+                
 
         return paths
 
@@ -164,13 +181,13 @@ class SearchProblem:
 
 
     def LBFS(self, depth_limit, start_transition, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        self.parents = [{} for x in range(len(self.model) + 1)] #create parents array
-        self.distances = [-math.inf] * (len(self.model)+1) #create distances array
+        self.parents = [{} for x in range(len(self.model) + 1)] # create parents array
+        self.distances = [-math.inf] * (len(self.model)+1) # create distances array
         node = start_transition[1]
         Q = queue.Queue()
         Q.put(node)
-        self.distances[node] = 0        #{depth: [(pai, index), (...)]}
-        self.parents[node][0] = 0
+        self.distances[node] = 1        #{depth: [(pai, index), (...)]}
+        self.parents[node][1] = 0
         while not Q.empty():
             u = Q.get()
             i = 0
@@ -182,11 +199,17 @@ class SearchProblem:
         
                 else: 
                     self.distances[child] = self.distances[u] + 1
+                    if (self.distances[child] ==  depth_limit-1 and child == self.current_goal):
+                        self.distances[child] == depth_limit
+                        continue
+
+                    if (self.distances[child] == depth_limit and child != self.current_goal):
+                        continue
 
                     if self.distances[child] not in self.parents[child]:
                         self.parents[child][self.distances[child]] = [(u, i)]
 
-                    else:
+                    elif (u,i) not in self.parents[child][self.distances[child]]:
                         self.parents[child][self.distances[child]].append((u, i))
                     
                     Q.put(child)
