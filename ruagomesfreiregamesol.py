@@ -24,40 +24,7 @@ class SearchProblem:
             path = [[[], [node]]] + path
             return path            
             
-
-        def recurs(dirty_paths, path, paths, current_depth, connection):
-            
-    #        print("======")
-    #        for i in range(15):
-    #            print(dirty_paths[i])
-
-    #        print("nos: ", dirty_paths[connection[0]][current_depth])
-    #        print("depth: ", current_depth)
-    #        print("path: ", path)
-    #        print("connection: ", connection)
-    #        print("======")
-
-            node = connection[0]
-            if current_depth == 1:
-                transport = self.model[node][connection[1]][0]
-                path[0][0] = [transport]
-
-                path = [[[], [node]]] + path
-                paths.append(path)
-
-            else:
-                if path != []:
-                    transport = self.model[node][connection[1]][0]
-                    print("path before:", path)
-                    print("transport: ", transport)
-                    path[0][0] = [transport]
-
-                path = [[[], [node]]] + path
-
-                for connection in dirty_paths[node][current_depth]:
-                    recurs(dirty_paths, path, paths, current_depth-1, connection)
-
-            
+          
   
         #BFS on all agents
         paths = []
@@ -83,25 +50,21 @@ class SearchProblem:
             aux_depth = longest
             not_done = True
             while not_done:
-                print("aux_depth = ", aux_depth)
                 for i in range(n):
                     self.current_goal = self.goal[i]
-                    all_possible = self.LBFS(aux_depth, [[],init[i]], limitexp, limitdepth, tickets)
-                    
-                    # if path with len n not found, search for paths with len n+1
+                    all_possible = []
+                    # all_possible = self.LBFS(aux_depth, [[],init[i]], limitexp, limitdepth, tickets)
+                    self.recBFS(aux_depth, [0,init[i]], 1, [], all_possible)
+                    valid_paths.append(all_possible)
                     not_done = False
-                    if all_possible == None:
+                    if len(all_possible) <= 1:
                         not_done = True
                         aux_depth += 1
                         break
 
-                #    clean_paths(valid_paths, all_possible, aux_depth, init[i])
-                    all_paths = []
-                    recurs(all_possible, [], all_paths, aux_depth, (self.current_goal, 0))
-                    print("paths: ", all_paths)
-                print("----------------------")
-                print(valid_paths)
-                print("----------------------")
+            print("----------------------")
+            print(valid_paths)
+            print("----------------------")
                 
 
         return paths
@@ -162,48 +125,30 @@ class SearchProblem:
         return DLS(longest_path, start_node, 0)
 
 
-    def LBFS(self, depth_limit, start_transition, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        self.parents = [{} for x in range(len(self.model) + 1)] # create parents array
-        self.distances = [-math.inf] * (len(self.model)+1) # create distances array
-        node = start_transition[1]
-        Q = queue.Queue()
-        Q.put(node)
-        self.distances[node] = 1        #{depth: [(pai, index), (...)]}
-        self.parents[node][1] = 0
-        while not Q.empty():
-            u = Q.get()
-            i = 0
-            for transition in self.model[u]: #check possible paths
-                #Validate child
-                child = transition[1]
-                if self.distances[u] == depth_limit:
-                    continue
-        
-                else: 
-                    self.distances[child] = self.distances[u] + 1
-                    if (self.distances[child] ==  depth_limit-1 and child == self.current_goal):
-                        self.distances[child] == depth_limit
-                        continue
+    def recBFS(self, depth_limit, transition, current_depth, path, paths, limitexp=2000, limitdepth=10):
+    #    print("======")
+    #    print("depth: ", current_depth)
+    #    print("node: ", transition[1])
+    #    print("goal: ", self.current_goal)
+    #    print("transition: ", transition)
+    #    print("path before: ", path)
+    #    print("======")
 
-                    if (self.distances[child] == depth_limit and child != self.current_goal):
-                        continue
+        if (current_depth == depth_limit and transition[1] == self.current_goal):
+            path2 = path + [[[transition[0]], [transition[1]]]]
+            paths.append(path2)
 
-                    if self.distances[child] not in self.parents[child]:
-                        self.parents[child][self.distances[child]] = [(u, i)]
+        if current_depth == 1:
+            path = [[[],[transition[1]]]]
+            for child in self.model[transition[1]]:
+                self.recBFS(depth_limit, child, current_depth+1, path, paths, limitexp, limitdepth)
 
-                    elif (u,i) not in self.parents[child][self.distances[child]]:
-                        self.parents[child][self.distances[child]].append((u, i))
-                    
-                    Q.put(child)
-                i += 1  
+        elif current_depth < depth_limit:
+            path = path[:current_depth-1]
+            path += [[[transition[0]], [transition[1]]]]
+            for child in self.model[transition[1]]:
+                self.recBFS(depth_limit, child, current_depth+1, path, paths, limitexp, limitdepth)
 
-        # verify that path to goal with len = depth_limit exists
-        if depth_limit in self.parents[self.current_goal]:
-            print("goal: ", self.current_goal)
-            print("limit: ", self.parents[self.current_goal])
-            return self.parents
-
-        return None
 
 
 
