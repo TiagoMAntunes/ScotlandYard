@@ -22,59 +22,43 @@ class SearchProblem:
                 path = self.format(self.parents[node][0], self.parents[node][1]) + path
                 node = self.parents[node][0]
             path = [[[], [node]]] + path
-            return path
+            return path            
+            
 
-        # TODO change this to return all possible paths
-        def clean_paths(paths, dirty_paths, depth_limit, init):    
-            print("=========")
-            for i in range(25):
-                print(i, " - ", dirty_paths[i])
-            print("=========")
+        def recurs(dirty_paths, path, paths, current_depth, connection):
+            
+    #        print("======")
+    #        for i in range(15):
+    #            print(dirty_paths[i])
 
-            final = [[[], [self.current_goal]]]
-            node = self.current_goal
-            i = depth_limit
-            while True:
-                # one path found, prepare to look for more
-                print("node: ", node)
-                print("depth = ", i)
-                print("dirty_node: ", dirty_paths[node])
-                if i == 1:
-                    # got one path
-                    if node == init:
-                        paths += [final]
-                        print("\npaths: ", paths)
- 
-                    node = self.current_goal
-                    i = depth_limit
-                    final = [[[], [self.current_goal]]]
+    #        print("nos: ", dirty_paths[connection[0]][current_depth])
+    #        print("depth: ", current_depth)
+    #        print("path: ", path)
+    #        print("connection: ", connection)
+    #        print("======")
 
-                else:
-                    # no more paths terminating in goal
-                    if dirty_paths[node][i] == []:
-                        node = self.current_goal
-                        i = depth_limit
-                        final = [[[], [self.current_goal]]]
+            node = connection[0]
+            if current_depth == 1:
+                transport = self.model[node][connection[1]][0]
+                path[0][0] = [transport]
 
-                    # no more paths terminating in goal
-                    if dirty_paths[self.current_goal][depth_limit] == []:
-                        break;
-                        
-                    connection = dirty_paths[node][i].pop()
-                    print("connection: ", connection)
-                    print("from ", node, " to ", connection[0])
-                    node = connection[0]
+                path = [[[], [node]]] + path
+                paths.append(path)
+
+            else:
+                if path != []:
                     transport = self.model[node][connection[1]][0]
-                    final[0][0].append(transport)
-                    final = [[[], [node]]] + final
-                    print("final = ", final)
-                    i -= 1
+                    print("path before:", path)
+                    print("transport: ", transport)
+                    path[0][0] = [transport]
 
-            print("proper paths: ", paths)
-            return paths
+                path = [[[], [node]]] + path
 
+                for connection in dirty_paths[node][current_depth]:
+                    recurs(dirty_paths, path, paths, current_depth-1, connection)
 
-       
+            
+  
         #BFS on all agents
         paths = []
         for i in range(len(self.goal)):
@@ -90,10 +74,6 @@ class SearchProblem:
 
         for path in paths:
             print(path)
-
-        print("len of longest: ", longest)
-
-        print("filhos 6: ", self.model[6])
 
 
         #SBFS for all paths with specific size adapting to longer sizes
@@ -115,8 +95,10 @@ class SearchProblem:
                         aux_depth += 1
                         break
 
-                    clean_paths(valid_paths, all_possible, aux_depth, init[i])
-                    
+                #    clean_paths(valid_paths, all_possible, aux_depth, init[i])
+                    all_paths = []
+                    recurs(all_possible, [], all_paths, aux_depth, (self.current_goal, 0))
+                    print("paths: ", all_paths)
                 print("----------------------")
                 print(valid_paths)
                 print("----------------------")
