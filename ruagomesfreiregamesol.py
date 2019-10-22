@@ -40,7 +40,7 @@ class SearchProblem:
                 longest = len(path)
 
         for path in paths:
-            print(path)
+            print("path:", path)
 
 
         #SBFS for all paths with specific size adapting to longer sizes
@@ -71,14 +71,13 @@ class SearchProblem:
 
 
     def BFS(self, node, goal):
-        self.parents = [[-math.inf, 0, [0,0,0]] for x in range(len(self.model) + 1)] #create parents array
+        self.parents = [[-math.inf, 0] for x in range(len(self.model) + 1)] #create parents array
         self.distances = [-math.inf] * (len(self.model)+1) #create distances array
         self.visited = [False] * (len(self.model)+1)
         Q = queue.Queue()
         Q.put(node)
         self.distances[node] = 0
         self.visited[node] = True
-        self.parents[node][2] = self.tickets
         
         while not Q.empty():
             u = Q.get()
@@ -86,17 +85,10 @@ class SearchProblem:
             for transition in self.model[u]: #check possible paths
                 #Validate child
                 child = transition[1]
-                if self.parents[u][2][transition[0]] <= 0:
-                    continue
-        
                 if not self.visited[child]: #not visited
                     self.visited[child] = True
                     self.distances[child] = self.distances[u] + 1
-                    
-                    #update tickets
-                    tickets = list(self.parents[u][2])
-                    tickets[transition[0]] -= 1
-                    self.parents[child] = [u, i, tickets]
+                    self.parents[child] = [u, i]
                     
                     #stop earlier
                     if child == goal:
