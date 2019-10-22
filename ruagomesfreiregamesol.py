@@ -88,13 +88,18 @@ class SearchProblem:
         self.expansions += len(node)
         
         #possible combinations to try
-        combinations = list(product( *[self.model[node[i]] for i in range(len(path))] )) 
+        combinations = list(product( *[map(tuple,self.model[node[i]]) for i in range(len(path))] )) 
         
         #sort by minimal f
         combinations.sort(key = lambda x: sum([self.cost(x[i][1], i) for i in range(len(x))]))
         
 
         for poss_path in combinations:
+            
+            if len(set(poss_path)) != len(poss_path):
+                #collision handling!
+                continue
+
             for i in range(len(path)): #adds path to try again
                 path[i].append(poss_path[i][1])
             
