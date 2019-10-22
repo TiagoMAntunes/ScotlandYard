@@ -63,7 +63,7 @@ class SearchProblem:
         aux_depth = longest
         not_done = True
         has_tickets = False
-        while not_done or not has_tickets:
+        while not_done or (self.tickets[0] != math.inf and not has_tickets):
             sameLen_paths = []
             for i in range(n):
                 self.current_goal = self.goal[i]
@@ -82,71 +82,66 @@ class SearchProblem:
                     for path in all_possible:
                         if validate_tickets([path]):
                             has_tickets = True
+                            # if only one agent, return found path
                             if n == 1:
                                 return path
 
+                # if path doesnt exist or not enough tickets, look for a new path
                 if not_done or (self.tickets[0] != math.inf and not has_tickets):
                     aux_depth += 1
                     break
-            #    print("----------------------")
-            #    print(all_possible)
-            #    print("----------------------")
 
-                # if it exists, add it
-                sameLen_paths += [all_possible]
+                # if only one agent, path exists and no ticket limit, return it
+                if n == 1:
+                    return all_possible[0]
 
-        #print("----------------------")
-        #print(sameLen_paths)
-        #print("----------------------")
+                # path exists and enough tickets, 3 detectives
+                else:
+                    sameLen_paths += [all_possible]
 
 
         # Choose paths with no collisions and enough tickets
-        valid_paths = []
-        print("-----")
-        for path1 in sameLen_paths[0]:
-            for path2 in sameLen_paths[1]:
-                for path3 in sameLen_paths[2]:
+        if (n == 3):
+            valid_paths = []
+            print("-----")
+            for path1 in sameLen_paths[0]:
+                for path2 in sameLen_paths[1]:
+                    for path3 in sameLen_paths[2]:
 
-                    # if they collide, dont proceed with search
-                    collide1 = collide2 = False
-                    for i in range(longest):
-                        if path1[i][1] == path2[i][1]:
-                            collide1 = True
+                        # if they collide, dont proceed with search
+                        collide1 = collide2 = False
+                        for i in range(longest):
+                            if path1[i][1] == path2[i][1]:
+                                collide1 = True
+                                break
+
+                            elif path1[i][1] == path3[i][1] or path2[i][1] == path3[i][1]:
+                                collide2 = True
+                                break
+
+                            if collide1 or collide2:
+                                break
+
+                        if collide1:
                             break
 
-                        elif path1[i][1] == path3[i][1] or path2[i][1] == path3[i][1]:
-                            collide2 = True
-                            break
+                        if collide2:
+                            continue
 
-                        if collide1 or collide2:
-                            break
+                        # if no limit of tickets, return first path found
+                        if (tickets[0] == math.inf):
+                            return [path1, path2, path3]
 
-                    if collide1:
-                        break
-
-                    if collide2:
-                        continue
-
-                    # if no limit of tickets, return first path found
-                    if (tickets[0] == math.inf):
-                        return [path1, path2, path3]
-
-                    else:
-                        if validate_tickets([path1, path2, path3]):
-                            valid_paths += [path1, path2, path3]
+                        else:
+                            if validate_tickets([path1, path2, path3]):
+                                valid_paths += [path1, path2, path3]
 
 
-        print("valid: ", valid_paths)
-        print("-----")
+            print("valid: ", valid_paths)
+            print("-----")
 
 
-
-
-
-
-                
-
-        return paths
+            return valid_paths
 
 
     def BFS(self, node, goal):
