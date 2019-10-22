@@ -2,7 +2,7 @@ import math
 import pickle
 import time
 from pprint import pprint as p
-import queue
+from queue import Queue
 
 class SearchProblem:
 
@@ -10,6 +10,38 @@ class SearchProblem:
         self.goal = goal
         self.model = model
         self.coords = auxheur
+        self.heur = [[] for _ in range(len(goal)) ]
+
+        #pre-process all goals
+        for i in range(len(goal)):
+            self.heur[i] = self.min_distances(i)
+
+
+    def min_distances(self, goal_index):
+        #BFS all nodes
+        origin = self.goal[goal_index]
+        distances = [-1] * len(self.model)
+        parents = [-1] * len(self.model)
+        q = Queue()
+        q.put(origin)
+        
+        distances[origin] = 0
+        while not q.empty():
+            visiting = q.get()
+            for path in self.model[visiting]:
+                child = path[1]
+                if distances[child] != -1:
+                    continue
+                distances[child] = distances[visiting] + 1
+                
+                q.put(child)
+        
+        return distances
+
+    def cost(self, origin, destiny_index):
+        distances = self.heur[destiny_index] # get current objectives distances
+        return distances[origin]
+
 
     def format(self, parent, child):
         return [[[self.model[parent][child][0]], [self.model[parent][child][1]]]]
@@ -26,8 +58,6 @@ class SearchProblem:
             
         
         def validate_tickets(paths):
-            print("paths to validate: ", paths)
-            print("tickets: ", self.tickets)
             aux_tickets = [] + self.tickets
             path_size = len(paths[0])
             for path in paths:
@@ -37,9 +67,22 @@ class SearchProblem:
 
                     aux_tickets[path[i][0][0]] -= 1
 
-                return True
-            return False
+            return True
 
+
+        def format_paths(paths):
+            len_paths = len(paths[0])
+            formated = [[[], [paths[0][0][1][0], paths[1][0][1][0], paths[2][0][1][0]]]]
+            for i in range(1, len_paths):
+                t0 = paths[0][i][0][0]
+                t1 = paths[1][i][0][0]
+                t2 = paths[2][i][0][0]
+                n0 = paths[0][i][1][0]
+                n1 = paths[1][i][1][0]
+                n2 = paths[2][i][1][0]
+                formated += [[[t0, t1, t2], [n0, n1, n2]]]
+
+            return formated
 
         #BFS on all agents
         paths = []
@@ -54,101 +97,101 @@ class SearchProblem:
             if longest < len(path):
                 longest = len(path)
 
-        for path in paths:
-            print("path:", path)
-
-
         # recBFS for all paths with specific size adapting to longer sizes
-        n = len(self.goal)        
+        n = len(self.goal)   
         aux_depth = longest
-        not_done = True
+        done = False
         has_tickets = False
-        while not_done or (self.tickets[0] != math.inf and not has_tickets):
+        total_exp = 0;
+        while not done or (self.tickets[0] != math.inf and not has_tickets):
             sameLen_paths = []
             for i in range(n):
                 self.current_goal = self.goal[i]
 
                 all_possible = []
-                self.recBFS(aux_depth, [0,init[i]], 1, [], all_possible)
+                exp = [1]
+                self.recBFS(aux_depth, exp, [0,init[i]], 1, [], all_possible, i)
+                total_exp += exp[0]
+                print("total_exp: ", total_exp)
 
                 # if path with len n doesnt exist
-                not_done = False
+                done = True
                 has_tickets = False
                 if len(all_possible) <= 1:
-                    not_done = True
+                    done = False
                 
                 # if path with len n exists, verify if enough tickets
-                if not not_done and self.tickets[0] != math.inf:
-                    for path in all_possible:
-                        if validate_tickets([path]):
-                            has_tickets = True
-                            # if only one agent, return found path
-                            if n == 1:
+                if n == 1:
+                    if done and self.tickets[0] != math.inf:
+                        for path in all_possible:
+                            if validate_tickets([path]):
+                                print("exp = ", total_exp)
+                                # if only one agent, return found path
                                 return path
 
-                # if path doesnt exist or not enough tickets, look for a new path
-                if not_done or (self.tickets[0] != math.inf and not has_tickets):
-                    aux_depth += 1
-                    break
+                    # if path doesnt exist or not enough tickets, look for a new path
+                    if not done or (self.tickets[0] != math.inf and not has_tickets):
+                        aux_depth += 1
+                        break
 
-                # if only one agent, path exists and no ticket limit, return it
-                if n == 1:
+                    print("exp = ", total_exp)
                     return all_possible[0]
+                    
 
                 # path exists and enough tickets, 3 detectives
-                else:
+                elif n == 3:
+                    if not done:
+                        aux_depth += 1
+                        break
+
                     sameLen_paths += [all_possible]
 
+            # Choose paths with no collisions and enough tickets
+            if (n == 3 and done):
+                #print("====")
+                #print("sameLen_paths: ", sameLen_paths)
+                #print("====")
+                for path1 in sameLen_paths[0]:
+                    for path2 in sameLen_paths[1]:
+                        for path3 in sameLen_paths[2]:
 
-        # Choose paths with no collisions and enough tickets
-        if (n == 3):
-            valid_paths = []
-            print("-----")
-            for path1 in sameLen_paths[0]:
-                for path2 in sameLen_paths[1]:
-                    for path3 in sameLen_paths[2]:
+                            # if they collide, dont proceed with search
+                            collide1 = collide2 = False
+                            for i in range(longest):
+                                if path1[i][1] == path2[i][1]:
+                                    collide1 = True
+                                    break
 
-                        # if they collide, dont proceed with search
-                        collide1 = collide2 = False
-                        for i in range(longest):
-                            if path1[i][1] == path2[i][1]:
-                                collide1 = True
+                                elif path1[i][1] == path3[i][1] or path2[i][1] == path3[i][1]:
+                                    collide2 = True
+                                    break
+
+                                if collide1 or collide2:
+                                    break
+
+                            if collide1:
                                 break
 
-                            elif path1[i][1] == path3[i][1] or path2[i][1] == path3[i][1]:
-                                collide2 = True
-                                break
+                            if collide2:
+                                continue
 
-                            if collide1 or collide2:
-                                break
+                            # if no limit of tickets, return first path found
+                            if (tickets[0] == math.inf):
+                                print("exp = ", total_exp)
+                                return format_paths([path1, path2, path3])
 
-                        if collide1:
-                            break
-
-                        if collide2:
-                            continue
-
-                        # if no limit of tickets, return first path found
-                        if (tickets[0] == math.inf):
-                            return [path1, path2, path3]
-
-                        else:
-                            if validate_tickets([path1, path2, path3]):
-                                valid_paths += [path1, path2, path3]
-
-
-            print("valid: ", valid_paths)
-            print("-----")
-
-
-            return valid_paths
+                            else:
+                                if validate_tickets([path1, path2, path3]):
+                                    print("exp = ", total_exp)
+                                    return format_paths([path1, path2, path3])
+                done = False
 
 
     def BFS(self, node, goal):
         self.parents = [[-math.inf, 0] for x in range(len(self.model) + 1)] #create parents array
         self.distances = [-math.inf] * (len(self.model)+1) #create distances array
         self.visited = [False] * (len(self.model)+1)
-        Q = queue.Queue()
+        Q = Queue()
         Q.put(node)
         self.distances[node] = 0
         self.visited[node] = True
@@ -171,34 +214,17 @@ class SearchProblem:
                 i += 1
 
 
-    def SDFS(self, longest_path, start_node, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        def DLS(depth, node, time):
-            if depth == 0:
-                if node == self.current_goal:
-                    print('Goal found! ' + str(node))
-                    return []
-                else:
-                    return None
-            elif depth > 0:
-                new_node = RecursiveNode(node)
-                for child in self.model[node]:
-                    found = DLS(depth - 1, child[1], time + 1)
-                    if found != None:
-                        new_node.add(found)
-                return new_node
-
-        #return [[[], [start_node]]] + DLS(longest_path, start_node, 0)[0]
-        return DLS(longest_path, start_node, 0)
-
-
-    def recBFS(self, depth_limit, transition, current_depth, path, paths, limitexp=2000, limitdepth=10):
+    def recBFS(self, depth_limit, exp, transition, current_depth, path, paths, goal_index, limitexp=2000, limitdepth=10):
         #print("======")
+        #print("limit: ", depth_limit)
         #print("depth: ", current_depth)
         #print("node: ", transition[1])
         #print("goal: ", self.current_goal)
         #print("transition: ", transition)
         #print("path before: ", path)
         #print("======")
+
+        moves_left = depth_limit - current_depth
 
         if (current_depth == depth_limit and transition[1] == self.current_goal):
             path2 = path + [[[transition[0]], [transition[1]]]]
@@ -207,10 +233,14 @@ class SearchProblem:
         if current_depth == 1:
             path = [[[],[transition[1]]]]
             for child in self.model[transition[1]]:
-                self.recBFS(depth_limit, child, current_depth+1, path, paths, limitexp, limitdepth)
+                if self.heur[goal_index][child[1]] <= moves_left:
+                    exp[0] += 1
+                    self.recBFS(depth_limit, exp, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
 
         elif current_depth < depth_limit:
             path = path[:current_depth-1]
             path += [[[transition[0]], [transition[1]]]]
             for child in self.model[transition[1]]:
-                self.recBFS(depth_limit, child, current_depth+1, path, paths, limitexp, limitdepth)
+                if self.heur[goal_index][child[1]] <= moves_left:
+                    exp[0] += 1
+                    self.recBFS(depth_limit, exp, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
