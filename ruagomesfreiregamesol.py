@@ -3,6 +3,7 @@ import pickle
 import time
 from pprint import pprint as p
 from queue import Queue
+import itertools
 
 class SearchProblem:
 
@@ -47,7 +48,7 @@ class SearchProblem:
         return [[[self.model[parent][child][0]], [self.model[parent][child][1]]]]
 
 
-    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
+    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf], anyorder=False):
         def backtrack(node):
             path = []
             while self.parents[node][0] > 0:
@@ -84,19 +85,20 @@ class SearchProblem:
 
             return formated
 
-        #BFS on all agents
-        paths = []
-        for i in range(len(self.goal)):
-            self.tickets = tickets
-            self.BFS(init[i], self.goal[i])
-            paths.append(backtrack(self.goal[i]))
-            
-        #Validate longest path
-        longest = 0
-        for path in paths:
-            if longest < len(path):
-                longest = len(path)
+        if (anyorder):
+            self.goal_combs = {}
+            for comb in itertools.permutations(self.goal, len(self.goal)):
+                self.goal_combs[comb] = 0;
 
+            print(self.goal_combs)
+
+        self.tickets = tickets
+        longest = 0
+        for i in range(len(self.goal)):
+            if self.heur[i][init[i]] > longest:
+                longest = self.heur[i][init[i]]
+
+        longest += 1
         # recBFS for all paths with specific size adapting to longer sizes
         n = len(self.goal)   
         aux_depth = longest
@@ -112,7 +114,6 @@ class SearchProblem:
                 exp = [1]
                 self.recBFS(aux_depth, exp, [0,init[i]], 1, [], all_possible, i)
                 total_exp += exp[0]
-                print("total_exp: ", total_exp)
 
                 # if path with len n doesnt exist
                 done = True
@@ -125,7 +126,7 @@ class SearchProblem:
                     if done and self.tickets[0] != math.inf:
                         for path in all_possible:
                             if validate_tickets([path]):
-                                print("exp = ", total_exp)
+                                print("exp0 = ", total_exp)
                                 # if only one agent, return found path
                                 return path
 
@@ -134,7 +135,7 @@ class SearchProblem:
                         aux_depth += 1
                         break
 
-                    print("exp = ", total_exp)
+                    print("exp1 = ", total_exp)
                     return all_possible[0]
                     
 
@@ -151,6 +152,7 @@ class SearchProblem:
                 #print("====")
                 #print("sameLen_paths: ", sameLen_paths)
                 #print("====")
+                longest = len(sameLen_paths[0][0])
                 for path1 in sameLen_paths[0]:
                     for path2 in sameLen_paths[1]:
                         for path3 in sameLen_paths[2]:
@@ -177,12 +179,12 @@ class SearchProblem:
 
                             # if no limit of tickets, return first path found
                             if (tickets[0] == math.inf):
-                                print("exp = ", total_exp)
+                                print("exp2 = ", total_exp)
                                 return format_paths([path1, path2, path3])
 
                             else:
                                 if validate_tickets([path1, path2, path3]):
-                                    print("exp = ", total_exp)
+                                    print("exp3 = ", total_exp)
                                     return format_paths([path1, path2, path3])
                 done = False
 
