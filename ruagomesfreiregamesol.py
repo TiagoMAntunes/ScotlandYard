@@ -16,10 +16,11 @@ class SearchProblem:
         self.coords = auxheur
         self.expansions = 0
         self.heur = [[] for _ in range(len(goal))]
+        self.n_detectives = len(goal)
 
         # pre-process all goals
 
-        for i in range(len(goal)):
+        for i in range(self.n_detectives):
             self.heur[i] = self.min_distances(i)
 
         print('Distances calculated')
@@ -31,6 +32,9 @@ class SearchProblem:
             # get the minimum distance that they ALL need to do
             minimum_distance = min(
                 max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
+            
+            self.goal_perms = permutations(self.goal)
+
         else:
             minimum_distance = max([self.cost(init[x], x)
                                     for x in range(len(init))])
@@ -79,7 +83,7 @@ class SearchProblem:
 
     def ida_star(self, start_size, init, tickets):
         bound = start_size
-        path = [[[-1, init[i]]] for i in range(len(self.goal))]
+        path = [[[-1, init[i]]] for i in range(self.n_detectives)]
 
         while True:
             t = self.find(path, 0, bound, tickets)
@@ -87,22 +91,23 @@ class SearchProblem:
                 break
             bound += 1
             print('Bound increased')
-        print('Path is: {} with a bound of {}'.format(path, bound))
+        #print('Path is: {} with a bound of {}'.format(path, bound))
 
         return self.format_path(path, [[[], []] for x in range(len(path[0]))]) 
 
     def find(self, path, current_cost, bound, tickets):
-        node = [path[x][-1][1] for x in range(len(path))]
+        len_path = len(path)
+        node = [path[x][-1][1] for x in range(len_path)]
 
         # estimates to get to all points
-        f = [(self.cost(node[i], i) + current_cost) for i in range(len(path))]
+        f = [(self.cost(node[i], i) + current_cost) for i in range(len_path)]
 
         # have we reached the goal?
-        if self.anyorder and any(map(lambda x: x == node, permutations(self.goal))) or self.goal == node:
+        if self.anyorder and any(map(lambda x: x == node, self.goal_perms)) or self.goal == node:
             return 'FOUND'
 
         # check if bound has been exceeded by any of them
-        if any([(lambda x: x > bound)(f[i]) for i in range(len(path))]):
+        if any([(lambda x: x > bound)(f[i]) for i in range(len_path)]):
             return f
 
         # Count expansions
@@ -110,7 +115,7 @@ class SearchProblem:
 
         # possible combinations to try
         combinations = list(
-            product(*[map(tuple, self.model[node[i]]) for i in range(len(path))]))
+            product(*[map(tuple, self.model[node[i]]) for i in range(len_path)]))
 
         # sort by minimal f
         combinations.sort(key=lambda x: sum(
@@ -118,7 +123,8 @@ class SearchProblem:
 
         for poss_path in combinations:
 
-            if len(set(poss_path)) != len(poss_path):
+            collision_validation = [path[1] for path in poss_path]
+            if len(set(collision_validation)) != len(collision_validation):
                 # collision handling!
                 continue
 
