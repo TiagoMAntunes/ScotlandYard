@@ -3,7 +3,7 @@ import pickle
 import time
 from pprint import pprint as p
 from queue import Queue
-from itertools import product
+from itertools import product, permutations
 
 expansions = 0
 
@@ -23,9 +23,10 @@ class SearchProblem:
         
         print('Distances calculated')
 
-    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
+    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf], anyorder = False):
+        self.anyorder = anyorder
         #minimum distance to perform
-        minimum_distance = max([self.cost(init[x], x) for x, _ in enumerate(init)])
+        minimum_distance = max([self.cost(init[x], y) for x in range(len(init)) for y in range(len(init))])
         self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
         
@@ -76,7 +77,7 @@ class SearchProblem:
         f = [(self.cost(node[i], i) + current_cost) for i in range(len(path))]
         
         #have we reached the goal?
-        if all( [(lambda x, i: x == self.goal[i])(node[i], i) for i in range(len(node))]):
+        if self.anyorder and any(map(lambda x: x == node, permutations(self.goal))) or self.goal == node:
             return 'FOUND'
 
         #check if bound has been exceeded by any of them
