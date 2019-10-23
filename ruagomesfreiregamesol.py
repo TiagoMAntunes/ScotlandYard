@@ -12,6 +12,7 @@ class SearchProblem:
         self.model = model
         self.coords = auxheur
         self.heur = [[] for _ in range(len(goal)) ]
+        self.expansions = 0
 
         #pre-process all goals
         for i in range(len(goal)):
@@ -103,6 +104,10 @@ class SearchProblem:
             return max
 
 
+        self.limitdepth = limitdepth
+        self.limitexp = limitexp
+        self.tickets = tickets
+        self.anyorder = anyorder
 
         if (anyorder):
             self.goal_perms = {}
@@ -121,25 +126,22 @@ class SearchProblem:
                                     for x in range(len(init))])
 
 
-        self.tickets = tickets
-        self.anyorder = anyorder
-
-
         # recBFS for all paths with specific size adapting to longer sizes
         n = len(self.goal)   
         aux_depth = longest
         done = False
         has_tickets = False
-        total_exp = 0;
         while not done or (self.tickets[0] != math.inf and not has_tickets):
             sameLen_paths = []
             for i in range(n):
-                self.current_goal = self.goal[i]
+                # if depth limit exceeded, no path was found
+                if aux_depth > self.limitdepth:
+                    return None
 
                 all_possible = []
-                exp = [1]
-                self.recBFS(aux_depth, exp, [0,init[i]], 1, [], all_possible, i)
-                total_exp += exp[0]
+                self.current_goal = self.goal[i]
+                self.expansions += 1
+                self.recBFS(aux_depth, [0,init[i]], 1, [], all_possible, i)
 
                 # if path with len n doesnt exist
                 done = True
@@ -152,7 +154,7 @@ class SearchProblem:
                     if done and self.tickets[0] != math.inf:
                         for path in all_possible:
                             if validate_tickets([path]):
-                                print("exp0 = ", total_exp)
+                                print("exp0 = ", self.expansions)
                                 # if only one agent, return found path
                                 return path
 
@@ -161,7 +163,7 @@ class SearchProblem:
                         aux_depth += 1
                         break
 
-                    print("exp1 = ", total_exp)
+                    print("exp1 = ", self.expansions)
                     return all_possible[0]
                     
 
@@ -218,13 +220,13 @@ class SearchProblem:
                             # no collisions found
                             # if no limit of tickets, return first path found
                             if (tickets[0] == math.inf):
-                                print("exp2 = ", total_exp)
+                                print("exp2 = ", self.expansions)
                                 return format_paths([path1, path2, path3])
 
                             # if tickets are limited, make sure to have enough
                             else:
                                 if validate_tickets([path1, path2, path3]):
-                                    print("exp3 = ", total_exp)
+                                    print("exp3 = ", self.expansions)
                                     return format_paths([path1, path2, path3])
 
                 # couldnt find path without collisions and enough tickets
@@ -270,7 +272,7 @@ class SearchProblem:
                 i += 1
 
 
-    def recBFS(self, depth_limit, exp, transition, current_depth, path, paths, goal_index, limitexp=2000, limitdepth=10):
+    def recBFS(self, depth_limit, transition, current_depth, path, paths, goal_index, limitexp=2000, limitdepth=10):
         #print("======")
         #print("limit: ", depth_limit)
         #print("depth: ", current_depth)
@@ -279,6 +281,10 @@ class SearchProblem:
         #print("transition: ", transition)
         #print("path before: ", path)
         #print("======")
+
+        # if limit of expansions is reached, stop looking
+        if self.expansions > self.limitexp:
+            return None
 
         moves_left = depth_limit - current_depth
 
@@ -290,13 +296,13 @@ class SearchProblem:
             path = [[[],[transition[1]]]]
             for child in self.model[transition[1]]:
                 if self.heur[goal_index][child[1]] <= moves_left:
-                    exp[0] += 1
-                    self.recBFS(depth_limit, exp, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
+                    self.expansions +=1
+                    self.recBFS(depth_limit, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
 
         elif current_depth < depth_limit:
             path = path[:current_depth-1]
             path += [[[transition[0]], [transition[1]]]]
             for child in self.model[transition[1]]:
                 if self.heur[goal_index][child[1]] <= moves_left:
-                    exp[0] += 1
-                    self.recBFS(depth_limit, exp, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
+                    self.expansions += 1
+                    self.recBFS(depth_limit, child, current_depth+1, path, paths, goal_index, limitexp, limitdepth)
