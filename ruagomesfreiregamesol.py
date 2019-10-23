@@ -26,9 +26,14 @@ class SearchProblem:
     def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf], anyorder = False):
         self.anyorder = anyorder
         #minimum distance to perform
-        minimum_distance = max([self.cost(init[x], y) for x in range(len(init)) for y in range(len(init))])
+        if anyorder:
+            minimum_distance = min(max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
+        else:
+            minimum_distance = max([self.cost(init[x], x) for x in range(len(init))])
+        print('Minimum distance is: {}'.format(minimum_distance))
         self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
+        print([x for x in permutations(self.goal)])
         
 
     def min_distances(self, goal_index):

@@ -162,4 +162,3 @@ else:
         
 tendtotal = time.process_time()
 print("Total time %.1fms"%((tendtotal-tinittotal)*1000))
-
