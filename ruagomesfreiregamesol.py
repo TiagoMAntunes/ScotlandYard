@@ -27,20 +27,20 @@ class SearchProblem:
         self.anyorder = anyorder
         #minimum distance to perform
         if anyorder:
+            #get the minimum distance that they ALL need to do
             minimum_distance = min(max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
         else:
             minimum_distance = max([self.cost(init[x], x) for x in range(len(init))])
+        
         print('Minimum distance is: {}'.format(minimum_distance))
         self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
-        print([x for x in permutations(self.goal)])
         
 
     def min_distances(self, goal_index):
-        #BFS all nodes
+        #BFS all nodes to find minimum distance for A* heuristic
         origin = self.goal[goal_index]
         distances = [-1] * len(self.model)
-        parents = [-1] * len(self.model)
         q = Queue()
         q.put(origin)
         
@@ -64,10 +64,9 @@ class SearchProblem:
     def ida_star(self, start_size, init, tickets):
         bound = start_size
         path = [[[-1, init[i]]] for i in range(len(self.goal))] 
-        print(path)
+        
         while True:
             t = self.find(path, 0, bound, tickets)
-            print('out with t {}'.format(t))
             if t == 'FOUND':
                 break
             bound +=1
@@ -76,8 +75,8 @@ class SearchProblem:
         return path
 
     def find(self, path, current_cost, bound, tickets):
-        #print('Path is {}'.format(path))
         node = [path[x][-1][1] for x in range(len(path))]
+
         #estimates to get to all points
         f = [(self.cost(node[i], i) + current_cost) for i in range(len(path))]
         
@@ -104,23 +103,27 @@ class SearchProblem:
             if len(set(poss_path)) != len(poss_path):
                 #collision handling!
                 continue
+
+
             new_tickets = [] + tickets
 
             for a in poss_path:
                 new_tickets[a[0]] -= 1
 
+            #Too many tickets used?
             if (any(map((lambda x: x < 0), new_tickets))):
                 continue
 
-            for i in range(len(path)): #adds path to try again
+            for i in range(len(path)): #adds path to be tried
                 path[i].append([poss_path[i][0],poss_path[i][1]])
             
 
             t = self.find(path, current_cost + 1, bound, new_tickets)
+
             if t == 'FOUND':
                 return 'FOUND'
            
-            for i in range(len(path)):
+            for i in range(len(path)): #path not found, remove from path
                 path[i].pop()
             pass
         return 0
