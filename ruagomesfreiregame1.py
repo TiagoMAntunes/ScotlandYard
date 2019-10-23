@@ -147,7 +147,7 @@ else:
 
 print("\n(4 val) Exercise 5 - Three agents, Limits, Any-Order")
 print("Init [30,40,109] Goal [61,60,71]")
-SP = SearchProblem(goal = [63,61,70], model = U, auxheur=coords)
+SP = SearchProblem(goal = [61,60,71], model = U, auxheur=coords)
 tinit = time.process_time()
 I = [30,40,109]
 nn = SP.search(I,limitexp = 3000, limitdepth = 10, tickets = [5,20,2], anyorder = True)

@@ -22,12 +22,11 @@ class SearchProblem:
             self.heur[i] = self.min_distances(i)
         
         print('Distances calculated')
-        print(self.heur)
 
     def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
         #minimum distance to perform
         minimum_distance = max([self.cost(init[x], x) for x, _ in enumerate(init)])
-        self.ida_star(minimum_distance, init)
+        self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
         
 
@@ -56,12 +55,12 @@ class SearchProblem:
         distances = self.heur[destiny_index] # get current objectives distances
         return distances[origin]
 
-    def ida_star(self, start_size, init):
+    def ida_star(self, start_size, init, tickets):
         bound = start_size
-        path = [[init[i]] for i in range(len(self.goal))] 
-        
+        path = [[[-1, init[i]]] for i in range(len(self.goal))] 
+        print(path)
         while True:
-            t = self.find(path, 0, bound)
+            t = self.find(path, 0, bound, tickets)
             print('out with t {}'.format(t))
             if t == 'FOUND':
                 break
@@ -70,9 +69,9 @@ class SearchProblem:
         print('Path is: {} with a bound of {}'.format(path, bound))
         return path
 
-    def find(self, path, current_cost, bound):
-        node = [path[x][-1] for x in range(len(path))]
-        
+    def find(self, path, current_cost, bound, tickets):
+        #print('Path is {}'.format(path))
+        node = [path[x][-1][1] for x in range(len(path))]
         #estimates to get to all points
         f = [(self.cost(node[i], i) + current_cost) for i in range(len(path))]
         
@@ -83,7 +82,7 @@ class SearchProblem:
         #check if bound has been exceeded by any of them
         if any( [(lambda x: x > bound)(f[i]) for i in range(len(path))]):
             return f
-    
+
         #Count expansions
         self.expansions += len(node)
         
@@ -99,11 +98,19 @@ class SearchProblem:
             if len(set(poss_path)) != len(poss_path):
                 #collision handling!
                 continue
+            new_tickets = [] + tickets
+
+            for a in poss_path:
+                new_tickets[a[0]] -= 1
+
+            if (any(map((lambda x: x < 0), new_tickets))):
+                continue
 
             for i in range(len(path)): #adds path to try again
-                path[i].append(poss_path[i][1])
+                path[i].append([poss_path[i][0],poss_path[i][1]])
             
-            t = self.find(path, current_cost + 1, bound)
+
+            t = self.find(path, current_cost + 1, bound, new_tickets)
             if t == 'FOUND':
                 return 'FOUND'
            
