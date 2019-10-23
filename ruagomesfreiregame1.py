@@ -26,7 +26,7 @@ def plotpath(P,coords):
         fig = plt.gcf()
         fig.set_size_inches(1.*18.5, 1.*10.5)
         #fig.savefig('test2png.png', dpi=100)   
-        plt.show()
+        #plt.show()
         
 def validatepath(oP,oI,U,tickets=[25,25,25]): 
         print(oP)
@@ -69,7 +69,7 @@ def validatepath(oP,oI,U,tickets=[25,25,25]):
         return True
 
 tinittotal = time.process_time()
-"""
+
 print("\n(2 val) Exercise 1 - One agent, No limits")
 print("Init [30] Goal [56]")
 SP = SearchProblem(goal = [56], model = U, auxheur=coords)
@@ -99,7 +99,7 @@ if validatepath(nn,I,U, tickets = [5,5,2]):
         plotpath(nn,coords)
 else:
         print("invalid path")
-"""
+
 print("\n(6 val) Exercise 3 - Three agents, No limits (test 1)")
 print("Init [1,3,7] Goal [2,21,9]")
 SP = SearchProblem(goal = [2,21,9], model = U, auxheur=coords)
@@ -114,7 +114,7 @@ if validatepath(nn,I,U):
         plotpath(nn,coords)
 else:
         print("invalid path")
-"""
+
 print("\n(6 val) Exercise 3 - Three agents, No limits (test 2)")
 print("Init [30,40,109] Goal [61,60,71]")
 SP = SearchProblem(goal = [61,60,71], model = U, auxheur=coords)
@@ -132,7 +132,7 @@ else:
 
 print("\n(4 val) Exercise 4 - Three agents, Limits")
 print("Init [30,40,109] Goal [61,60,71]")
-SP = SearchProblem(goal = [63,61,70], model = U, auxheur=coords)
+SP = SearchProblem(goal = [61,60,71], model = U, auxheur=coords)
 tinit = time.process_time()
 I = [30,40,109]
 nn = SP.search(I,limitexp = 3000, limitdepth = 10, tickets = [5,20,2])
@@ -147,9 +147,9 @@ else:
 
 print("\n(4 val) Exercise 5 - Three agents, Limits, Any-Order")
 print("Init [30,40,109] Goal [61,60,71]")
-SP = SearchProblem(goal = [63,61,70], model = U, auxheur=coords)
+SP = SearchProblem(goal = [61,60, 71], model = U, auxheur=coords)
 tinit = time.process_time()
-I = [30,40,109]
+I = [30, 40, 109]
 nn = SP.search(I,limitexp = 3000, limitdepth = 10, tickets = [5,20,2], anyorder = True)
 tend = time.process_time()
 print("%.1fms"%((tend-tinit)*1000))
@@ -162,7 +162,3 @@ else:
         
 tendtotal = time.process_time()
 print("Total time %.1fms"%((tendtotal-tinittotal)*1000))
-
-"""
-
-
