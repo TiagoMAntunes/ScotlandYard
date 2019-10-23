@@ -36,8 +36,10 @@ class SearchProblem:
                                     for x in range(len(init))])
 
         print('Minimum distance is: {}'.format(minimum_distance))
-        self.ida_star(minimum_distance, init, tickets)
+        final_path = self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
+
+        return final_path
 
     def min_distances(self, goal_index):
         # BFS all nodes to find minimum distance for A* heuristic
@@ -64,6 +66,17 @@ class SearchProblem:
         distances = self.heur[destiny_index]
         return distances[origin]
 
+    def format_path(self, paths, formated):
+        length = len(paths[0])
+        for path in paths:
+            for i in range(length):
+                if i > 0:
+                    formated[i][0].append(path[i][0])
+
+                formated[i][1].append(path[i][1])
+        print(formated)
+        return formated
+
     def ida_star(self, start_size, init, tickets):
         bound = start_size
         path = [[[-1, init[i]]] for i in range(len(self.goal))]
@@ -75,7 +88,8 @@ class SearchProblem:
             bound += 1
             print('Bound increased')
         print('Path is: {} with a bound of {}'.format(path, bound))
-        return path
+
+        return self.format_path(path, [[[], []] for x in range(len(path[0]))]) 
 
     def find(self, path, current_cost, bound, tickets):
         node = [path[x][-1][1] for x in range(len(path))]
@@ -129,3 +143,6 @@ class SearchProblem:
                 path[i].pop()
             pass
         return 0
+                
+
+
