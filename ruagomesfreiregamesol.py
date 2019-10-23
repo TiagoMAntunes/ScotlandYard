@@ -41,7 +41,7 @@ class SearchProblem:
 
     def cost(self, origin, destiny_index):
         distances = self.heur[destiny_index] # get current objectives distances
-        return distances[origin]
+        return distances[origin] + 1
 
 
     def format(self, parent, child):
@@ -59,6 +59,10 @@ class SearchProblem:
             
         
         def validate_tickets(paths):
+            """
+            Given a set of paths, verifies if there are enough tickets
+            available to persue it.
+            """
             aux_tickets = [] + self.tickets
             path_size = len(paths[0])
             for path in paths:
@@ -85,20 +89,42 @@ class SearchProblem:
 
             return formated
 
-        if (anyorder):
-            self.goal_combs = {}
-            for comb in itertools.permutations(self.goal, len(self.goal)):
-                self.goal_combs[comb] = 0;
+        
+        def goal_score(init, goal):
+            """
+            Given a set of goals and initial positions, scores the former
+            according to the maximum length of the shortest path of any 
+            initial node to the corresponding goal.
+            """
+            max = -math.inf
+            for i, pos in enumerate(init):
+                if (self.cost(pos, i) > max):
+                    max = self.cost(pos, i)
+            return max
 
-            print(self.goal_combs)
+
+
+        if (anyorder):
+            self.goal_perms = {}
+            for comb in itertools.permutations(self.goal, len(self.goal)):
+                self.goal_perms[comb] = goal_score(init, comb);
+
+            least_scored = min(self.goal_perms, key=self.goal_perms.get)
+            self.goal = least_scored
+
+            # get the minimum distance that they ALL need to do
+            longest = min(
+                max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
+
+        else:
+            longest = max([self.cost(init[x], x)
+                                    for x in range(len(init))])
+
 
         self.tickets = tickets
-        longest = 0
-        for i in range(len(self.goal)):
-            if self.heur[i][init[i]] > longest:
-                longest = self.heur[i][init[i]]
+        self.anyorder = anyorder
 
-        longest += 1
+
         # recBFS for all paths with specific size adapting to longer sizes
         n = len(self.goal)   
         aux_depth = longest
@@ -139,10 +165,20 @@ class SearchProblem:
                     return all_possible[0]
                     
 
-                # path exists and enough tickets, 3 detectives
+                # path exists, 3 detectives
                 elif n == 3:
                     if not done:
                         aux_depth += 1
+                        # need to update goal's score and persue new minimal goal
+                        if self.anyorder:
+                            #print("----")
+                            #print("prev goal: ", self.goal)
+                            self.goal_perms[self.goal] += 1
+                            self.goal = min(self.goal_perms, key=self.goal_perms.get)
+                            aux_depth = self.goal_perms[self.goal]
+                            #print("updated perms: ", self.goal_perms)
+                            #print("new goal: ", self.goal)
+                            #print("----")
                         break
 
                     sameLen_paths += [all_possible]
@@ -171,22 +207,40 @@ class SearchProblem:
                                 if collide1 or collide2:
                                     break
 
+                            # if paths 1 and 2 collide, go to next path2
                             if collide1:
                                 break
 
+                            # if path 3 collides with 1 and/or 2, go to next path3
                             if collide2:
                                 continue
 
+                            # no collisions found
                             # if no limit of tickets, return first path found
                             if (tickets[0] == math.inf):
                                 print("exp2 = ", total_exp)
                                 return format_paths([path1, path2, path3])
 
+                            # if tickets are limited, make sure to have enough
                             else:
                                 if validate_tickets([path1, path2, path3]):
                                     print("exp3 = ", total_exp)
                                     return format_paths([path1, path2, path3])
+
+                # couldnt find path without collisions and enough tickets
                 done = False
+
+                # need to update goal's score and persue new minimal goal
+                if (self.anyorder):
+                    #print("====")
+                    #print("prev goal: ", self.goal)
+                    self.goal_perms[self.goal] += 1
+                    self.goal = min(self.goal_perms, key=self.goal_perms.get)
+                    aux_depth = self.goal_perms[self.goal]
+                    #print("updated perms: ", self.goal_perms)
+                    #print("new goal: ", self.goal)
+                    #print("====")
+
 
 
     def BFS(self, node, goal):
@@ -228,7 +282,7 @@ class SearchProblem:
 
         moves_left = depth_limit - current_depth
 
-        if (current_depth == depth_limit and transition[1] == self.current_goal):
+        if current_depth == depth_limit and transition[1] == self.current_goal:
             path2 = path + [[[transition[0]], [transition[1]]]]
             paths.append(path2)
 
