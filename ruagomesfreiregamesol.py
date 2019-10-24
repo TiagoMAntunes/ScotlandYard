@@ -23,7 +23,7 @@ class SearchProblem:
         for i in range(self.n_detectives):
             self.heur[i] = self.min_distances(i)
 
-        print('Distances calculated')
+        #print('Distances calculated')
 
     def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf], anyorder=False):
         self.anyorder = anyorder
@@ -33,15 +33,17 @@ class SearchProblem:
             minimum_distance = min(
                 max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
 
-            self.goal_perms = permutations(self.goal)
+            self.goal_perms = tuple(permutations(self.goal))
 
         else:
             minimum_distance = max([self.cost(init[x], x)
                                     for x in range(len(init))])
+            self.goal_perms =  [self.goal]
 
-        print('Minimum distance is: {}'.format(minimum_distance))
+        #print('Minimum distance is: {}'.format(minimum_distance))
         final_path = self.ida_star(minimum_distance, init, tickets)
         print('Number of expansions {}'.format(self.expansions))
+        print('Size of minimal path: {}'.format(len(final_path)))
 
         return final_path
 
@@ -85,12 +87,20 @@ class SearchProblem:
         bound = start_size
         path = [[[-1, init[i]]] for i in range(self.n_detectives)]
 
+
         while True:
-            t = self.find(path, 0, bound, tickets)
+            for end_state in self.goal_perms:
+                #print('Trying end_state: {}'.format(end_state))
+                self.curr_goal = end_state
+                t = self.find(path, 0, bound, tickets)
+                if t == 'FOUND': # no need to search more
+                    break
+            #we've found the path
             if t == 'FOUND':
                 break
+
             bound += 1
-            print('Bound increased')
+            #print('Bound increased')
         #print('Path is: {} with a bound of {}'.format(path, bound))
 
         return self.format_path(path, [[[], []] for x in range(len(path[0]))])
@@ -99,11 +109,11 @@ class SearchProblem:
         len_path = len(path)
         node = [path[x][-1][1] for x in range(len_path)]
 
-        # estimates to get to all points
-        f = [(self.cost(node[i], i) + current_cost) for i in range(len_path)]
+        # estimates to get to goal
+        f = [(self.cost(node[i], self.goal.index(self.curr_goal[i])) + current_cost) for i in range(len_path)]
 
         # have we reached the goal?
-        if self.anyorder and any(map(lambda x: x == node, self.goal_perms)) or self.goal == node:
+        if list(self.curr_goal) == node:
             return 'FOUND'
 
         # check if bound has been exceeded by any of them
@@ -118,13 +128,8 @@ class SearchProblem:
             product(*[map(tuple, self.model[node[i]]) for i in range(len_path)]))
 
         # sort by minimal f
-        if self.anyorder:
-            combinations.sort(key = lambda x: sum(
-                [self.cost(x[i][1], y) for i in range(len_path) for y in range(len(self.goal))]
-            ))
-        else:
-            combinations.sort(key=lambda x: sum(
-                [self.cost(x[i][1], i) for i in range(len(x))]))
+        combinations.sort(key=lambda x: sum(
+            [self.cost(x[i][1], i) for i in range(len(x))]))
 
         for poss_path in combinations:
 
