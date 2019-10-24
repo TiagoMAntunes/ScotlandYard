@@ -32,7 +32,7 @@ class SearchProblem:
             # get the minimum distance that they ALL need to do
             minimum_distance = min(
                 max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
-            
+
             self.goal_perms = permutations(self.goal)
 
         else:
@@ -93,7 +93,7 @@ class SearchProblem:
             print('Bound increased')
         #print('Path is: {} with a bound of {}'.format(path, bound))
 
-        return self.format_path(path, [[[], []] for x in range(len(path[0]))]) 
+        return self.format_path(path, [[[], []] for x in range(len(path[0]))])
 
     def find(self, path, current_cost, bound, tickets):
         len_path = len(path)
@@ -118,8 +118,13 @@ class SearchProblem:
             product(*[map(tuple, self.model[node[i]]) for i in range(len_path)]))
 
         # sort by minimal f
-        combinations.sort(key=lambda x: sum(
-            [self.cost(x[i][1], i) for i in range(len(x))]))
+        if self.anyorder:
+            combinations.sort(key = lambda x: sum(
+                [self.cost(x[i][1], y) for i in range(len_path) for y in range(len(self.goal))]
+            ))
+        else:
+            combinations.sort(key=lambda x: sum(
+                [self.cost(x[i][1], i) for i in range(len(x))]))
 
         for poss_path in combinations:
 
@@ -127,7 +132,6 @@ class SearchProblem:
             if len(set(collision_validation)) != len(collision_validation):
                 # collision handling!
                 continue
-
             new_tickets = [] + tickets
 
             for a in poss_path:
@@ -149,6 +153,3 @@ class SearchProblem:
                 path[i].pop()
             pass
         return 0
-                
-
-

@@ -26,7 +26,7 @@ def plotpath(P,coords):
         fig = plt.gcf()
         fig.set_size_inches(1.*18.5, 1.*10.5)
         #fig.savefig('test2png.png', dpi=100)   
-        plt.show()
+        #plt.show()
         
 def validatepath(oP,oI,U,tickets=[25,25,25]): 
         print(oP)
