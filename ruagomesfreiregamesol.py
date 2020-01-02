@@ -2,6 +2,11 @@ import math
 import pickle
 import time
 from pprint import pprint as p
+from queue import Queue
+from itertools import product, permutations
+
+expansions = 0
+
 
 class SearchProblem:
 
@@ -9,161 +14,147 @@ class SearchProblem:
         self.goal = goal
         self.model = model
         self.coords = auxheur
-        self.max_dist = math.sqrt((self.coords[31][0] - self.coords[112][0])**2 + (self.coords[31][1] - self.coords[112][1])**2)
-        self.busy_times = {}
-        self.collisions = [{}, {}, {}]	# [{t0: [[dx, dy], node], t1: ...}, {...}, {...}]
+        self.expansions = 0
+        self.heur = [[] for _ in range(len(goal))]
+        self.n_detectives = len(goal)
 
-    def cost(self, node, succ):
-        dist = math.sqrt((self.coords[node-1][0] - self.coords[succ-1][0])**2 + (self.coords[node-1][1] - self.coords[succ-1][1])**2)
-        return dist / self.max_dist
+        # pre-process all goals
 
-    def h(self, start_node, goal_index=0):
-        """ Heuristica: distancia no mapa / max dist entre 2 pontos """
-        return self.cost(start_node, self.goal[goal_index])  
+        for i in range(self.n_detectives):
+            self.heur[i] = self.min_distances(i)
 
+        #print('Distances calculated')
 
-    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        def add_positions(list):
-            for i in range(len(list)):
-                if i not in self.busy_times:
-                    self.busy_times[i] = [list[i][1][0]]
-                else:
-                    self.busy_times[i].append(list[i][1][0])
+    def search(self, init, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf], anyorder=False):
+        self.anyorder = anyorder
+        # minimum distance to perform
+        if anyorder:
+            # get the minimum distance that they ALL need to do
+            minimum_distance = min(
+                max([self.cost(init[x], y) for x in range(len(init))] for y in range(len(init))))
 
-        def get_collisions(n_detectives, paths):
-            for i in range(len(n_detectives) -1):
-                for j in range(path_lengths[i]):
-                    node = shortest_paths[i][j][1][0]
-                    if (j <= path_lengths[i+1] and node == shortest_paths[i+1][j][1][0]):
-                        if j not in self.collisions[i]:
-                            self.collisions[i+1][j] = [[i], node]
-                        else:
-                            self.collisions[i+1][j][0].append(i)
+            self.goal_perms = tuple(permutations(self.goal))
 
-        n_detectives = range(len(self.goal))
-        shortest_paths = [0] * len(n_detectives)
-        for i in n_detectives:
-            self.current_goal = self.goal[i]
-            shortest_paths[i] = self.IDA([init[i]], limitexp, limitdepth, tickets, i)
-            print("shortest", i, " ", shortest_paths[i])
+        else:
+            minimum_distance = max([self.cost(init[x], x)
+                                    for x in range(len(init))])
+            self.goal_perms =  [self.goal]
 
-        # calculate each path's length
-        path_lengths = []
-        for path in shortest_paths:
-        	path_lengths.append(len(path))
+        #print('Minimum distance is: {}'.format(minimum_distance))
+        final_path = self.ida_star(minimum_distance, init, tickets)
+        print('Number of expansions {}'.format(self.expansions))
+        print('Size of minimal path: {}'.format(len(final_path)))
 
-        # get collisions for each path
-        get_collisions(n_detectives, shortest_paths)
-        print("collisions = ", self.collisions)
+        return final_path
 
-        # recalculate paths with collisions, avoiding them
-        uncolliding_paths = [0] * len(n_detectives)
-        for i in n_detectives:
-            if self.collisions[i]:
-                uncolliding_paths[i] = self.IDA([init[i]], limitexp, limitdepth, tickets, i)
+    def min_distances(self, goal_index):
+        # BFS all nodes to find minimum distance for A* heuristic
+        origin = self.goal[goal_index]
+        distances = [-1] * len(self.model)
+        q = Queue()
+        q.put(origin)
 
-            else:
-                uncolliding_paths[i] = shortest_paths[i]
+        distances[origin] = 0
+        while not q.empty():
+            visiting = q.get()
+            for path in self.model[visiting]:
+                child = path[1]
+                if distances[child] != -1:
+                    continue
+                distances[child] = distances[visiting] + 1
 
-            add_positions(uncolliding_paths[i])
+                q.put(child)
 
-        print("not colliding = ", uncolliding_paths)
+        return distances
 
-        #find the limiting path, the one that is the longest between the shortest paths
-        longest_index = 0
-        for i, path in enumerate(shortest_paths[1:]):
-            if len(path) > len(shortest_paths[longest_index]):
-                longest_index = i
+    def cost(self, origin, destiny_index):
+        # get current objectives distances
+        distances = self.heur[destiny_index]
+        return distances[origin]
 
-        #longest_index holds the index of the agent with the longest path
-        # add_positions(shortest_paths[longest_index])
-        for i in range(len(shortest_paths)):
-            if (i == longest_index):
-                continue
-            self.current_goal = self.goal[i]
-            print("current goal = ", self.current_goal)
-            print('Current busy positions: ' + str(self.busy_times))
-            shortest_paths[i] = self.IDFS(shortest_paths[longest_index], init[i], limitexp, limitdepth, tickets)
-            add_positions(shortest_paths[i])
+    def format_path(self, paths, formated):
+        length = len(paths[0])
+        for path in paths:
+            for i in range(length):
+                if i > 0:
+                    formated[i][0].append(path[i][0])
+
+                formated[i][1].append(path[i][1])
+        print(formated)
+        return formated
+
+    def ida_star(self, start_size, init, tickets):
+        bound = start_size
+        path = [[[-1, init[i]]] for i in range(self.n_detectives)]
 
 
-        res = []
-
-        for i in range(len(shortest_paths[0])):
-            l = [[],[]]
-            for j in range(len(shortest_paths)):
-                l[0] += shortest_paths[j][i][0]
-                l[1] += shortest_paths[j][i][1]
-            res.append(l)
-        return res
-
-        
-
-    def IDA(self, init, limitexp, limitdepth, tickets, detective):
-        bound = self.h(init[0]) 	#initial limit
-        path = [[[], init]]         # path = [[[transport], [node]], [...]]
         while True:
-            t = self.find(path, 1, bound, 0, detective, tickets)
+            for end_state in self.goal_perms:
+                #print('Trying end_state: {}'.format(end_state))
+                self.curr_goal = end_state
+                t = self.find(path, 0, bound, tickets)
+                if t == 'FOUND': # no need to search more
+                    break
+            #we've found the path
             if t == 'FOUND':
-                return path
-            elif t == math.inf:
-                return []
-            bound = t
-        return path
+                break
 
-    def find(self, path, g, bound, time, detective, tickets = [math.inf, math.inf, math.inf]):
-        node = path[-1][-1][0]
-        f = g + self.h(node)
-        if f > bound:
-            return f
-        if node == self.current_goal:
+            bound += 1
+            #print('Bound increased')
+        #print('Path is: {} with a bound of {}'.format(path, bound))
+
+        return self.format_path(path, [[[], []] for x in range(len(path[0]))])
+
+    def find(self, path, current_cost, bound, tickets):
+        len_path = len(path)
+        node = [path[x][-1][1] for x in range(len_path)]
+
+        # estimates to get to goal
+        f = [(self.cost(node[i], self.goal.index(self.curr_goal[i])) + current_cost) for i in range(len_path)]
+
+        # have we reached the goal?
+        if list(self.curr_goal) == node:
             return 'FOUND'
-            
-        min = math.inf
 
-        for succ in self.model[node]:
-            # detective cant go to unreachable places, nor use transport without tickets
-            # detective cant go to places where it has collisions
-            # detective cant create new collisions
-            if succ not in path and tickets[succ[0]] > 0 and \
-            (not self.collisions[detective] or \
-            time+1 not in self.collisions[detective] or \
-            self.collisions[detective][time+1][1] != succ[1]) and \
-            (time+1 not in self.busy_times or \
-            succ[1] not in self.busy_times[time+1]):
+        # check if bound has been exceeded by any of them
+        if any([(lambda x: x > bound)(f[i]) for i in range(len_path)]):
+            return f
 
-                proper_succ = [[succ[0]], [succ[1]]]
-                path.append(proper_succ)
-                tickets[succ[0]] -= 1
-                t = self.find(path, f + self.cost(node, succ[1]), bound, time+1, detective, tickets)
-                if t == 'FOUND':
-                    return 'FOUND'
-                if t < min:
-                    min = t
-                path.pop()
-                tickets[succ[0]] += 1
+        # Count expansions
+        self.expansions += len(node)
 
-        return min
+        # possible combinations to try
+        combinations = list(
+            product(*[map(tuple, self.model[node[i]]) for i in range(len_path)]))
 
-    def IDFS(self, longest_path, start_node, limitexp=2000, limitdepth=10, tickets=[math.inf, math.inf, math.inf]):
-        def DLS(depth, node, time):
-            if depth == 0:
-                if node == self.current_goal:
-                    return [], True
-                else:
-                    return None, True 
-            elif depth > 0:
-                any_remaining = False
-                for child in self.model[node]:
-                    if child[1] in self.busy_times[time+1]: #busy position at the time
-                        continue
-                    found, remaining = DLS(depth - 1, child[1], time + 1)
-                    if found != None:
-                        proper_succ = [[child[0]], [child[1]]]
-                        return [proper_succ] + found, True
-                    if remaining:
-                        any_remaining = True
-                return None, any_remaining
+        # sort by minimal f
+        combinations.sort(key=lambda x: sum(
+            [self.cost(x[i][1], i) for i in range(len(x))]))
 
-        return [[[], [start_node]]] + DLS(len(longest_path)-1, start_node, 0)[0]
+        for poss_path in combinations:
 
+            collision_validation = [path[1] for path in poss_path]
+            if len(set(collision_validation)) != len(collision_validation):
+                # collision handling!
+                continue
+            new_tickets = [] + tickets
+
+            for a in poss_path:
+                new_tickets[a[0]] -= 1
+
+            # Too many tickets used?
+            if (any(map((lambda x: x < 0), new_tickets))):
+                continue
+
+            for i in range(len(path)):  # adds path to be tried
+                path[i].append([poss_path[i][0], poss_path[i][1]])
+
+            t = self.find(path, current_cost + 1, bound, new_tickets)
+
+            if t == 'FOUND':
+                return 'FOUND'
+
+            for i in range(len(path)):  # path not found, remove from path
+                path[i].pop()
+            pass
+        return 0

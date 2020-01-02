@@ -26,7 +26,7 @@ def plotpath(P,coords):
         fig = plt.gcf()
         fig.set_size_inches(1.*18.5, 1.*10.5)
         #fig.savefig('test2png.png', dpi=100)   
-        plt.show()
+        #plt.show()
         
 def validatepath(oP,oI,U,tickets=[25,25,25]): 
         print(oP)
@@ -129,10 +129,10 @@ if validatepath(nn,I,U):
         plotpath(nn,coords)
 else:
         print("invalid path")
-"""
+
 print("\n(4 val) Exercise 4 - Three agents, Limits")
 print("Init [30,40,109] Goal [61,60,71]")
-SP = SearchProblem(goal = [63,61,70], model = U, auxheur=coords)
+SP = SearchProblem(goal = [61,60,71], model = U, auxheur=coords)
 tinit = time.process_time()
 I = [30,40,109]
 nn = SP.search(I,limitexp = 3000, limitdepth = 10, tickets = [5,20,2])
@@ -147,7 +147,7 @@ else:
 
 print("\n(4 val) Exercise 5 - Three agents, Limits, Any-Order")
 print("Init [30,40,109] Goal [61,60,71]")
-SP = SearchProblem(goal = [63,61,70], model = U, auxheur=coords)
+SP = SearchProblem(goal = [61,60,71], model = U, auxheur=coords)
 tinit = time.process_time()
 I = [30,40,109]
 nn = SP.search(I,limitexp = 3000, limitdepth = 10, tickets = [5,20,2], anyorder = True)
@@ -162,7 +162,3 @@ else:
         
 tendtotal = time.process_time()
 print("Total time %.1fms"%((tendtotal-tinittotal)*1000))
-
-"""
-
-
